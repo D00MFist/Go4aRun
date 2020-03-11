@@ -1,8 +1,5 @@
 # Go4aRun
 
-## Goals:
-Shellcode runner in GO that incorportates process injection, block dlls, and spoofed parent process
-
 ## Usage: 
 
 1. Change the desired passphrase used in encryption in hideit.go and Go4it.go
