@@ -146,8 +146,6 @@ var (
 	CreateRemoteThread  = kernel32.MustFindProc("CreateRemoteThread")
 )
 
-}
-
 //=========================================================
 //		VirtualProtect
 //=========================================================
