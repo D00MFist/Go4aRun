@@ -1,2 +1,3 @@
 package shelly
-var Sc ="f"
+
+var Sc = "Placeholder Run hideit first"

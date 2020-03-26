@@ -4,19 +4,16 @@
 
 1. Change the desired passphrase used in encryption in hideit.go and Go4it.go
 2. Change the behavior options in Go4it.go
-	* Change change between not allowing non-MS and only store through nonms and onlystore vars
-	* Change parentName var to change spoofed parent
-	* Change programPath var for process to launch by parent and inject into
-	* Change creationFlags to change behavior of programPath var launching
+	* Change block dll behavior: between "not allowing non-MS" and "only store" through nonms and onlystore variables
+	* Change parentName variable to change spoofed parent
+	* Change programPath variable to change process launched by parent which shellcode will inject into
+	* Change creationFlags to change launch behavior of programPath variable
+	* Select a Proc Injection Method by comment/uncommenting the sections CreateRemoteThread or QueueUserAPC
 3. Run hideit (either build or go run) and select the raw shellcode file
 4. The script should save the encrypted shellcode in the shelly.go file in pkg/shelly (if not move manually to pkg/shelly)
 5. Build Go4it.go (e.g: GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" Go4it.go)
-6. Compress: upx --brute go4it.go or go4it.exe
+6. Compress: upx --brute Go4it.exe
 7. Run through DefenderCheck (https://github.com/matterpreter/DefenderCheck)
-
-
-## ToDo: 
-1. Add other process injection methods (Currently only uses CreateRemoteThread)
 
 ## References/ Resources:
 * www.thepolyglotdeveloper.com/2018/02/encrypt-decrypt-data-golang-application-crypto-packages/
@@ -26,3 +23,4 @@
 * https://github.com/BishopFox/sliver
 * https://github.com/bluesentinelsec/OffensiveGoLang
 * https://github.com/djhohnstein/CSharpCreateThreadExample
+* https://github.com/Ne0nd0g/merlin
