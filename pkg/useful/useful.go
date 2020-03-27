@@ -162,7 +162,7 @@ func ShellCodeCreateRemoteThread(Proc uintptr, R_Addr uintptr, F int) error {
 	}
 	_, _, errWaitForSingleObject := WaitForSingleObject.Call(Proc, 0, syscall.INFINITE)
 	if errWaitForSingleObject.Error() != "The operation completed successfully." {
-		return errors.New("Error calling WaitForSingleObject:\r\n") //+ errRtlCreateUserThread.Error())
+		return errors.New("Error calling WaitForSingleObject:\r\n") 
 	}
 
 	return nil
