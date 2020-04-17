@@ -11,7 +11,7 @@
 	* Select a Proc Injection Method by comment/uncommenting the sections CreateRemoteThread or QueueUserAPC
 3. Run hideit (either build or go run) and select the raw shellcode file
 4. The script should save the encrypted shellcode in the shelly.go file in pkg/shelly (if not move manually to pkg/shelly)
-5. Build Go4it.go (e.g: GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" Go4it.go)
+5. Build Go4it.go (e.g: GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui -s -w" Go4it.go)
 6. Compress: upx --brute Go4it.exe
 7. Run through DefenderCheck (https://github.com/matterpreter/DefenderCheck)
 
