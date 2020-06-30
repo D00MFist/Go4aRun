@@ -8,12 +8,15 @@
 	* Change parentName variable to change spoofed parent
 	* Change programPath variable to change process launched by parent which shellcode will inject into
 	* Change creationFlags to change launch behavior of programPath variable
-	* Select a Proc Injection Method by comment/uncommenting the sections CreateRemoteThread or QueueUserAPC
+	* Select a Process Injection Method by comment/uncommenting the sections CreateRemoteThread or QueueUserAPC
 3. Run hideit (either build or go run) and select the raw shellcode file
 4. The script should save the encrypted shellcode in the shelly.go file in pkg/shelly (if not move manually to pkg/shelly)
 5. Build Go4it.go (e.g: GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui -s -w" Go4it.go)
 6. Compress: upx --brute Go4it.exe
 7. Run through DefenderCheck (https://github.com/matterpreter/DefenderCheck)
+
+## Related Blog Post:
+https://posts.specterops.io/going-4-a-run-eb263838b944
 
 ## References/ Resources:
 * www.thepolyglotdeveloper.com/2018/02/encrypt-decrypt-data-golang-application-crypto-packages/
