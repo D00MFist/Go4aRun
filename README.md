@@ -15,9 +15,9 @@
 6. Compress: upx --brute Go4it.exe
 7. Run through DefenderCheck (https://github.com/matterpreter/DefenderCheck)
 
-## Related Blog Post:
-https://posts.specterops.io/going-4-a-run-eb263838b944
-https://posts.specterops.io/going-4-a-hunt-66c9f0d7f32c
+## Related Blog Posts:
+* https://posts.specterops.io/going-4-a-run-eb263838b944
+* https://posts.specterops.io/going-4-a-hunt-66c9f0d7f32c
 
 ## References/ Resources:
 * www.thepolyglotdeveloper.com/2018/02/encrypt-decrypt-data-golang-application-crypto-packages/
